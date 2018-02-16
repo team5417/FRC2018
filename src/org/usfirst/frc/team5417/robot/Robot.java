@@ -47,7 +47,7 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	private static final String kDefaultAuto = "Default";
 	private static final String kCustomAuto = "My Auto";
 	private String m_autoSelected;
-	
+
 	private SendableChooser<String> m_chooser = new SendableChooser<>();
 	WPI_TalonSRX leftMotor1 = new WPI_TalonSRX(1);
 	WPI_TalonSRX leftMotor2 = new WPI_TalonSRX(2);
@@ -66,12 +66,12 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	int leftPosition = 0;
 	int rightPosition = 0;
 	boolean buttonstatus = false;
-	//NavxPID navxPID = new NavxPID(.1,20000, 0);
+	// NavxPID navxPID = new NavxPID(.1,20000, 0);
 	PIDController navxPID = new PIDController(.03, 0, .1, this, this);
 	double left;
 	double right;
 	AHRS navx;
-	float yaw = 0 ;
+	float yaw = 0;
 	final String defaultAuto = "Default Autonomous";
 	final String gearTestAuto = "Left auto";
 	final String otherAuto = "other auto";
@@ -79,18 +79,20 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	final String driveStraight = "Drive straight";
 	final String rightAuto = "Right auto";
 	double multiplier = 0;
-//	Trajectory.Config config = new Trajectory.Config(Trajectory.FitMethod.HERMITE_CUBIC, Trajectory.Config.SAMPLES_FAST, .05, .1, .5, .1);
-//	Waypoint[] points = new Waypoint[] {
-//		new Waypoint(0,0, Pathfinder.d2r(90)),
-//		new Waypoint(0,3,Pathfinder.d2r(90)),
-//		//new Waypoint(2,7,Pathfinder.d2r(45))
-//	};
-//	Trajectory trajectory = Pathfinder.generate(points, config);
-//	TankModifier modifier = new TankModifier(trajectory).modify(.66);
-//	Trajectory leftTrajectory = modifier.getLeftTrajectory();
-//	Trajectory rightTrajectory = modifier.getRightTrajectory();
-//	EncoderFollower leftFollower = new EncoderFollower(leftTrajectory);
-//	EncoderFollower rightFollower = new EncoderFollower(rightTrajectory);
+	// Trajectory.Config config = new
+	// Trajectory.Config(Trajectory.FitMethod.HERMITE_CUBIC,
+	// Trajectory.Config.SAMPLES_FAST, .05, .1, .5, .1);
+	// Waypoint[] points = new Waypoint[] {
+	// new Waypoint(0,0, Pathfinder.d2r(90)),
+	// new Waypoint(0,3,Pathfinder.d2r(90)),
+	// //new Waypoint(2,7,Pathfinder.d2r(45))
+	// };
+	// Trajectory trajectory = Pathfinder.generate(points, config);
+	// TankModifier modifier = new TankModifier(trajectory).modify(.66);
+	// Trajectory leftTrajectory = modifier.getLeftTrajectory();
+	// Trajectory rightTrajectory = modifier.getRightTrajectory();
+	// EncoderFollower leftFollower = new EncoderFollower(leftTrajectory);
+	// EncoderFollower rightFollower = new EncoderFollower(rightTrajectory);
 	double leftSpeed = 0;
 	double rightSpeed = 0;
 	int initLeftPosition;
@@ -99,11 +101,11 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	double initialYaw;
 	double currentYaw;
 	double targetYaw;
-	
-	
+	boolean run = false;
+
 	/**
-	 * This function is run when the robot is first started up and should be
-	 * used for any initialization code.
+	 * This function is run when the robot is first started up and should be used
+	 * for any initialization code.
 	 */
 	@Override
 	public void robotInit() {
@@ -120,41 +122,41 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 		rightMotor1.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 10);
 		CameraServer server = CameraServer.getInstance();
 		server.startAutomaticCapture("cam0", 0);
-		navxPID.setOutputRange(-0.5,.5);
+		navxPID.setOutputRange(-0.5, .5);
 		navxPID.setAbsoluteTolerance(.01);
 		navxPID.setInputRange(-180, 180);
 		navxPID.enable();
 		initialYaw = navx.getYaw();
 		m_autoSelected = kCustomAuto;
-//		leftFollower.configurePIDVA(.8, 0, 0, 1/1.7, 0);
-//		rightFollower.configurePIDVA(.8, 0, 0, 1/1.7, 0);
-//		rightFollower.configureEncoder(0, 4096, .127);
-//		leftFollower.configureEncoder(0, 4096, .127);
-		
+		// leftFollower.configurePIDVA(.8, 0, 0, 1/1.7, 0);
+		// rightFollower.configurePIDVA(.8, 0, 0, 1/1.7, 0);
+		// rightFollower.configureEncoder(0, 4096, .127);
+		// leftFollower.configureEncoder(0, 4096, .127);
+
 	}
 
 	/**
 	 * This autonomous (along with the chooser code above) shows how to select
-	 * between different autonomous modes using the dashboard. The sendable
-	 * chooser code works with the Java SmartDashboard. If you prefer the
-	 * LabVIEW Dashboard, remove all of the chooser code and uncomment the
-	 * getString line to get the auto name from the text box below the Gyro
+	 * between different autonomous modes using the dashboard. The sendable chooser
+	 * code works with the Java SmartDashboard. If you prefer the LabVIEW Dashboard,
+	 * remove all of the chooser code and uncomment the getString line to get the
+	 * auto name from the text box below the Gyro
 	 *
-	 * <p>You can add additional auto modes by adding additional comparisons to
-	 * the switch structure below with additional strings. If using the
-	 * SendableChooser make sure to add them to the chooser code above as well.
+	 * <p>
+	 * You can add additional auto modes by adding additional comparisons to the
+	 * switch structure below with additional strings. If using the SendableChooser
+	 * make sure to add them to the chooser code above as well.
 	 */
 	@Override
 	public void autonomousInit() {
-		//m_autoSelected = m_chooser.getSelected();
+		// m_autoSelected = m_chooser.getSelected();
 		// m_autoSelected = SmartDashboard.getString("Auto Selector",
-		// 		kDefaultAuto);
+		// kDefaultAuto);
 		System.out.println("Auto selected: " + m_autoSelected);
 		gearShift.set(false);
 		initLeftPosition = leftMotor1.getSelectedSensorPosition(0);
 		initRightPosition = leftMotor1.getSelectedSensorPosition(0);
 	}
-	
 
 	/**
 	 * This function is called periodically during autonomous.
@@ -162,58 +164,38 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	@Override
 	public void autonomousPeriodic() {
 		switch (m_autoSelected) {
-			case kCustomAuto:
-				timer.start();
-				multiplier = 0;
-				navxPID.setSetpoint(navx.getYaw());
-				while (multiplier <1) {
-					double speedMultiplier = getMultiplier(timer.get(), 2);
-					left = right = .8 * speedMultiplier;
-					left = left - correction;
-					right = right + correction;
-					m_drive.tankDrive(left, right);
-					SmartDashboard.putString("DB/String 0" , "acceleratin");
-				}
-				Timer.delay(2);
-				leftPosition = leftMotor1.getSelectedSensorPosition(0);
-				rightPosition = rightMotor2.getSelectedSensorPosition(0);
-				while (multiplier >0) {
-					double speedMultiplier = getSlowDownMultiplier(timer.get(), 2);
-					left = right = .8 * speedMultiplier;
-					left = left - correction;
-					right = right + correction;
-					m_drive.tankDrive(left, right);
-					SmartDashboard.putString("DB/String 0" , "deceleratin");
-				}
-				SmartDashboard.putString("DB/String 0", "Auton finished");
-				SmartDashboard.putString("DB/String 1", "" + leftMotor1.getSelectedSensorVelocity(0));
-				
-				break;
-			case kDefaultAuto:
-//				
-				break;
-			default:
-				navx.zeroYaw();
-				while(yaw < 70 ) {
-					yaw = navx.getYaw();
-					m_drive.tankDrive(.6, -.6);
-					SmartDashboard.putString("DB/String 4", "Yaw: " + yaw);
-					SmartDashboard.putString("DB/String 5", "Checking navx");
-					SmartDashboard.putString("DB/String 6", "left: " + m_left.get());
-					SmartDashboard.putString("DB/String 7", "Right: " + m_right.get());
-				}
-				while(yaw < 90 ) {
-					yaw = navx.getYaw();
-					m_drive.tankDrive(.5, -.5);
-					SmartDashboard.putString("DB/String 4", "Yaw: " + yaw);
-					SmartDashboard.putString("DB/String 5", "Checking navx");
-					SmartDashboard.putString("DB/String 6", "left: " + m_left.get());
-					SmartDashboard.putString("DB/String 7", "Right: " + m_right.get());
-				}
-				m_drive.tankDrive(0, 0);
-				SmartDashboard.putString("DB/String 5", "Stopped robot");
-				break;
-			
+		case kCustomAuto:
+
+			if (!run) {
+				driveDistance(10*12);
+				run = true;
+			}
+			break;
+		case kDefaultAuto:
+			//
+			break;
+		default:
+			navx.zeroYaw();
+			while (yaw < 70) {
+				yaw = navx.getYaw();
+				m_drive.tankDrive(.6, -.6);
+				SmartDashboard.putString("DB/String 4", "Yaw: " + yaw);
+				SmartDashboard.putString("DB/String 5", "Checking navx");
+				SmartDashboard.putString("DB/String 6", "left: " + m_left.get());
+				SmartDashboard.putString("DB/String 7", "Right: " + m_right.get());
+			}
+			while (yaw < 90) {
+				yaw = navx.getYaw();
+				m_drive.tankDrive(.5, -.5);
+				SmartDashboard.putString("DB/String 4", "Yaw: " + yaw);
+				SmartDashboard.putString("DB/String 5", "Checking navx");
+				SmartDashboard.putString("DB/String 6", "left: " + m_left.get());
+				SmartDashboard.putString("DB/String 7", "Right: " + m_right.get());
+			}
+			m_drive.tankDrive(0, 0);
+			SmartDashboard.putString("DB/String 5", "Stopped robot");
+			break;
+
 		}
 	}
 
@@ -221,27 +203,28 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	public void teleopInit() {
 		compressor.start();
 		timer.start();
-		//Arm.setSetpoint(motor.getSelectedSensorPosition(0));
+		// Arm.setSetpoint(motor.getSelectedSensorPosition(0));
 	}
+
 	/**
 	 * This function is called periodically during operator control.
 	 */
 	@Override
 	public void teleopPeriodic() {
-		
+
 		SmartDashboard.putNumber("left", left);
 		SmartDashboard.putNumber("right", right);
-		
+
 		rightPosition = rightMotor2.getSelectedSensorPosition(0);
 		SmartDashboard.putString("DB/String 2", "Right Position: " + rightPosition);
 		leftPosition = leftMotor1.getSelectedSensorPosition(0);
 		SmartDashboard.putString("DB/String 0", "Left Position: " + leftPosition);
-		
+
 		float yaw = navx.getYaw();
 		SmartDashboard.putString("DB/String 4", "Z axis: " + yaw);
 		SmartDashboard.putString("DB/String 5", "" + compressor.enabled());
 		if (driverStick.isFirstLBPressed()) {
-			gearShift.set(true);	
+			gearShift.set(true);
 		}
 		if (driverStick.isFirstRBPressed()) {
 			gearShift.set(false);
@@ -251,32 +234,37 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 			double currentYaw = navx.getYaw();
 			navxPID.setSetpoint(currentYaw);
 			timer.reset();
+		} else if (driverStick.isFirstXPressed()) {
+			navx.zeroYaw();
+			initialYaw = navx.getYaw();
+			currentYaw = initialYaw;
+			targetYaw = initialYaw + 90;
+			if (targetYaw > 180) {
+				targetYaw = (-180 + (targetYaw - 180));
+			}
+
 		}
-//		if (driverStick.isXHeldDown()) {
-//			armMotor1.set(0);
-//			armMotor2.set(0);
-//		}	
-//		else if (driverStick.isBHeldDown()) {
-//			armMotor1.set(0);
-//			armMotor2.set(0);
-//		}
-//		else {
-//			armMotor1.set(0);
-//			armMotor2.set(0);
-//		}
-		
-		
+		// if (driverStick.isXHeldDown()) {
+		// armMotor1.set(0);
+		// armMotor2.set(0);
+		// }
+		// else if (driverStick.isBHeldDown()) {
+		// armMotor1.set(0);
+		// armMotor2.set(0);
+		// }
+		// else {
+		// armMotor1.set(0);
+		// armMotor2.set(0);
+		// }
+
 		if (driverStick.isYHeldDown()) {
-			SmartDashboard.putNumber("c",  correction);
+			SmartDashboard.putNumber("c", correction);
 			double speedMultiplier = getMultiplier(timer.get(), 1.5);
 			left = right = .8 * speedMultiplier;
 			left = left - correction;
 			right = right + correction;
 			m_drive.tankDrive(left, right);
-			SmartDashboard.putNumber("l", (leftSpeed - correction));
-			SmartDashboard.putNumber("r", (rightSpeed + correction));
-		}
-		else if (driverStick.isBHeldDown()) {
+		} else if (driverStick.isBHeldDown()) {
 			double speedMultiplier = getSlowDownMultiplier(timer.get(), 1.5);
 			left = right = .8 * speedMultiplier;
 			left = left - correction;
@@ -284,23 +272,21 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 			m_drive.tankDrive(left, right);
 			SmartDashboard.putNumber("l", (leftSpeed - correction));
 			SmartDashboard.putNumber("r", (rightSpeed + correction));
-		}
-		else if (driverStick.isXHeldDown()) {
-			initialYaw = navx.getYaw();
-			currentYaw = initialYaw;
-			targetYaw = initialYaw+90;
-			if(currentYaw<targetYaw) {
-				m_drive.tankDrive(-.5, .5);
-				currentYaw=navx.getYaw();
+		} else if (driverStick.isXHeldDown()) {
+			if (currentYaw < targetYaw) {
+				m_drive.tankDrive(-.6, .6);
+				currentYaw = navx.getYaw();
+			} else {
+				m_drive.tankDrive(0, 0);
 			}
-		}
-		else {
+		} else {
 			left = -driverStick.getLYValue();
 			right = -driverStick.getRYValue();
-			m_drive.tankDrive(left,right);
+			m_drive.tankDrive(left, right);
 		}
 
 	}
+
 	/**
 	 * This function is called periodically during test mode.
 	 */
@@ -317,7 +303,7 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	@Override
 	public void setPIDSourceType(PIDSourceType pidSource) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -328,37 +314,75 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 
 	@Override
 	public double pidGet() {
-		
+
 		return navx.getYaw();
 	}
-	
+
 	public int inchesToTicks(double inches) {
-		int ticks = (int) (inches * multiplier);
+		int ticks = (int) (inches * 4096/15.70794);
 		return ticks;
 	}
+
 	public double getMultiplier(double time, double maxTime) {
-		double multiplier = (Math.pow(time, 2))/(Math.pow(maxTime,2));
+		double multiplier = (Math.pow(time, 2)) / (Math.pow(maxTime, 2));
 		if (multiplier < 0) {
 			return 0;
-		}
-		else if (multiplier > 1) {
+		} else if (multiplier > 1) {
 			return 1;
-		}
-		else {
+		} else {
 			return multiplier;
 		}
 	}
-	
+
 	public double getSlowDownMultiplier(double time, double maxTime) {
-		double multiplier = (Math.pow(time-maxTime, 2))/(Math.pow(maxTime,2));
-		if (multiplier < 0) {
+		double multiplier = (Math.pow(time - maxTime, 2)) / (Math.pow(maxTime, 2));
+		if (multiplier < 0 | time > maxTime) {
 			return 0;
-		}
-		else if (multiplier > 1) {
+		} else if (multiplier > 1) {
 			return 1;
-		}
-		else {
+		} else {
 			return multiplier;
 		}
+	}
+	public void driveDistance (int distance) {
+		int ticks = inchesToTicks(distance);
+		int count = leftMotor1.getSelectedSensorPosition(0);
+		int target = count + ticks;
+		double speedMultiplier = 0;
+		timer.start();
+		multiplier = 0;
+		navxPID.setSetpoint(navx.getYaw());
+		while (speedMultiplier < 1) {
+			speedMultiplier = getMultiplier(timer.get(), 1);
+			left = right = .8 * speedMultiplier;
+			left = left - correction;
+			right = right + correction;
+			m_drive.tankDrive(left, right);
+			SmartDashboard.putString("DB/String 0", "acceleratin");
+			SmartDashboard.putString("DB/String 1", "" + speedMultiplier);
+		}
+		while ((target - leftMotor1.getSelectedSensorPosition(0)) >10000) {
+			m_drive.tankDrive(.8 - correction, .8 + correction);
+			SmartDashboard.putString("DB/String 1", "" + (target - leftMotor1.getSelectedSensorPosition(0)));
+		}
+		leftPosition = leftMotor1.getSelectedSensorPosition(0);
+		rightPosition = rightMotor2.getSelectedSensorPosition(0);
+		timer.reset();
+		while (timer.get() < .1) {
+			m_drive.tankDrive(-.4, -.4);
+		}
+		m_drive.tankDrive(0, 0);
+//		while (speedMultiplier > 0) {
+//			speedMultiplier = getSlowDownMultiplier(timer.get(), 2);
+//			left = right = .8 * speedMultiplier;
+//			left = left - correction;
+//			right = right + correction;
+//			m_drive.tankDrive(left, right);
+//			SmartDashboard.putString("DB/String 0", "deceleratin");
+//			SmartDashboard.putString("DB/String 1", "" + speedMultiplier);
+//		}
+		SmartDashboard.putString("DB/String 0", "Auton finished");
+		
+		SmartDashboard.putString("DB/String 2", "" + (leftMotor1.getSelectedSensorPosition(0) - leftPosition));
 	}
 }

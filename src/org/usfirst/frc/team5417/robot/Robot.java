@@ -20,6 +20,7 @@ import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PIDController;
@@ -51,12 +52,16 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	private SendableChooser<String> m_chooser = new SendableChooser<>();
 	WPI_TalonSRX leftMotor1 = new WPI_TalonSRX(1);
 	WPI_TalonSRX leftMotor2 = new WPI_TalonSRX(2);
-	WPI_TalonSRX rightMotor1 = new WPI_TalonSRX(4);
-	WPI_TalonSRX rightMotor2 = new WPI_TalonSRX(5);
-	WPI_TalonSRX armMotor1 = new WPI_TalonSRX(3);
-	WPI_TalonSRX armMotor2 = new WPI_TalonSRX(6);
+	WPI_TalonSRX rightMotor1 = new WPI_TalonSRX(5);
+	WPI_TalonSRX rightMotor2 = new WPI_TalonSRX(6);
+	WPI_TalonSRX armMotor1 = new WPI_TalonSRX(0);
+	WPI_TalonSRX armMotor2 = new WPI_TalonSRX(4);
+	VictorSP leftIntake = new VictorSP(0);
+	VictorSP rightIntake = new VictorSP(1);
 	Compressor compressor = new Compressor();
 	Solenoid gearShift = new Solenoid(0);
+	DigitalInput limitSwitchTop = new DigitalInput(0);
+	DigitalInput limitSwitchBottom = new DigitalInput(1);
 	Timer timer = new Timer();
 	SpeedControllerGroup m_left = new SpeedControllerGroup(leftMotor1, leftMotor2);
 	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor1, rightMotor2);
@@ -154,8 +159,8 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 		// kDefaultAuto);
 		System.out.println("Auto selected: " + m_autoSelected);
 		gearShift.set(false);
-		initLeftPosition = leftMotor1.getSelectedSensorPosition(0);
-		initRightPosition = leftMotor1.getSelectedSensorPosition(0);
+		initLeftPosition = leftMotor2.getSelectedSensorPosition(0);
+		initRightPosition = leftMotor2.getSelectedSensorPosition(0);
 	}
 
 	/**
@@ -217,7 +222,7 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 
 		rightPosition = rightMotor2.getSelectedSensorPosition(0);
 		SmartDashboard.putString("DB/String 2", "Right Position: " + rightPosition);
-		leftPosition = leftMotor1.getSelectedSensorPosition(0);
+		leftPosition = leftMotor2.getSelectedSensorPosition(0);
 		SmartDashboard.putString("DB/String 0", "Left Position: " + leftPosition);
 
 		float yaw = navx.getYaw();
@@ -244,18 +249,28 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 			}
 
 		}
-		// if (driverStick.isXHeldDown()) {
-		// armMotor1.set(0);
-		// armMotor2.set(0);
-		// }
-		// else if (driverStick.isBHeldDown()) {
-		// armMotor1.set(0);
-		// armMotor2.set(0);
-		// }
-		// else {
-		// armMotor1.set(0);
-		// armMotor2.set(0);
-		// }
+		 if (manipulatorStick.getRTValue() > .2 && !limitSwitchTop.get()) {
+		 armMotor1.set(manipulatorStick.getRTValue());
+		 armMotor2.set(-manipulatorStick.getRTValue());
+		 }
+		 else if (manipulatorStick.getLTValue()> .2 && !limitSwitchBottom.get()) {
+		 armMotor1.set(-manipulatorStick.getLTValue());
+		 armMotor2.set(manipulatorStick.getLTValue());
+		 }
+		 else {
+		 armMotor1.set(0);
+		 armMotor2.set(0);
+		 }
+		 
+		 if (Math.abs(manipulatorStick.getLYValue()) > .2) {
+			 leftIntake.set(-manipulatorStick.getLYValue());
+		 }
+		 
+		 if (Math.abs(manipulatorStick.getRYValue()) > .2) {
+			 rightIntake.set(manipulatorStick.getRYValue());
+		 }
+		 
+		 
 
 		if (driverStick.isYHeldDown()) {
 			SmartDashboard.putNumber("c", correction);
@@ -346,7 +361,7 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	}
 	public void driveDistance (int distance) {
 		int ticks = inchesToTicks(distance);
-		int count = leftMotor1.getSelectedSensorPosition(0);
+		int count = leftMotor2.getSelectedSensorPosition(0);
 		int target = count + ticks;
 		double speedMultiplier = 0;
 		timer.start();
@@ -361,11 +376,11 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 			SmartDashboard.putString("DB/String 0", "acceleratin");
 			SmartDashboard.putString("DB/String 1", "" + speedMultiplier);
 		}
-		while ((target - leftMotor1.getSelectedSensorPosition(0)) >10000) {
+		while ((target - leftMotor2.getSelectedSensorPosition(0)) >10000) {
 			m_drive.tankDrive(.8 - correction, .8 + correction);
-			SmartDashboard.putString("DB/String 1", "" + (target - leftMotor1.getSelectedSensorPosition(0)));
+			SmartDashboard.putString("DB/String 1", "" + (target - leftMotor2.getSelectedSensorPosition(0)));
 		}
-		leftPosition = leftMotor1.getSelectedSensorPosition(0);
+		leftPosition = leftMotor2.getSelectedSensorPosition(0);
 		rightPosition = rightMotor2.getSelectedSensorPosition(0);
 		timer.reset();
 		while (timer.get() < .1) {
@@ -383,6 +398,6 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 //		}
 		SmartDashboard.putString("DB/String 0", "Auton finished");
 		
-		SmartDashboard.putString("DB/String 2", "" + (leftMotor1.getSelectedSensorPosition(0) - leftPosition));
+		SmartDashboard.putString("DB/String 2", "" + (leftMotor2.getSelectedSensorPosition(0) - leftPosition));
 	}
 }

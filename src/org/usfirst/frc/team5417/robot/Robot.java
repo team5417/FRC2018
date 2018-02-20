@@ -74,7 +74,7 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	int rightPosition = 0;
 	boolean buttonstatus = false;
 	// NavxPID navxPID = new NavxPID(.1,20000, 0);
-	PIDController navxPID = new PIDController(.01, 0, .1, this, this);
+	PIDController navxPID = new PIDController(.01, 0, .1, this, this);   ///changed PID values
 	double left;
 	double right;
 	AHRS navx;

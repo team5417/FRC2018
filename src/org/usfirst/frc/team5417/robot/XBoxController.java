@@ -15,6 +15,16 @@ public class XBoxController {
 	boolean wasYPressed = false;
 	boolean wasXPressed = false;
 	boolean XbuttonPress = false;
+	boolean wasAPressed = false;
+	boolean AbuttonPress = false;
+	boolean wasBPressed = false;
+	boolean BbuttonPress = false;
+	boolean wasStartPressed = false;
+	boolean StartbuttonPress = false;
+	boolean wasDpadleftPressed = false;
+	boolean DpadleftPress = false;
+	boolean wasDpadrightPressed = false;
+	boolean DpadrightPress = false;
 
 	public XBoxController(Joystick driverStick) {
 		this.driverStick = driverStick;
@@ -59,7 +69,40 @@ public class XBoxController {
 		return XbuttonPress;
 		
 	}
-	
+	public boolean isFirstDpadleftPressed() {
+		if (driverStick.getPOV() == 270) {
+			if (wasDpadleftPressed)
+				DpadleftPress = false;
+			else
+				DpadleftPress = true;
+
+			wasDpadleftPressed = true;
+		}
+		
+		else {
+			wasDpadleftPressed = false;
+			DpadleftPress = false;
+		}
+		return DpadleftPress;
+		
+	}
+	public boolean isFirstDpadrightPressed() {
+		if (driverStick.getPOV() == 90) {
+			if (wasDpadrightPressed)
+				DpadrightPress = false;
+			else
+				DpadrightPress = true;
+
+			wasDpadrightPressed = true;
+		}
+		
+		else {
+			wasDpadrightPressed = false;
+			DpadrightPress = false;
+		}
+		return DpadrightPress;
+		
+	}
 	public boolean isFirstRBPressed() {
 		if (driverStick.getRawButton(6)) {
 			if (wasRBPressed)
@@ -77,6 +120,57 @@ public class XBoxController {
 		return RBbuttonPress;
 	}
 	
+	public boolean isFirstBPressed() {
+		if (driverStick.getRawButton(2)) {
+			if (wasBPressed)
+				BbuttonPress = false;
+			else
+				BbuttonPress = true;
+
+			wasBPressed = true;
+		}
+		
+		else {
+			wasBPressed = false;
+			BbuttonPress = false;
+		}
+		return BbuttonPress;
+		
+	}
+	public boolean isFirstAPressed() {
+		if (driverStick.getRawButton(1)) {
+			if (wasAPressed)
+				AbuttonPress = false;
+			else
+				AbuttonPress = true;
+
+			wasAPressed = true;
+		}
+		
+		else {
+			wasAPressed = false;
+			AbuttonPress = false;
+		}
+		return AbuttonPress;
+		
+	}
+	public boolean isFirstStartPressed() {
+		if (driverStick.getRawButton(8)) {
+			if (wasStartPressed)
+				StartbuttonPress = false;
+			else
+				StartbuttonPress = true;
+
+			wasStartPressed = true;
+		}
+		
+		else {
+			wasStartPressed = false;
+			StartbuttonPress = false;
+		}
+		return StartbuttonPress;
+		
+	}
 	
 	public boolean isAHeldDown() {
 		return driverStick.getRawButton(1);
@@ -141,6 +235,7 @@ public class XBoxController {
 		return backButtonPressed;
 		
 	}
+	
 	public boolean isFirstYPressed() {
 		if (driverStick.getRawButton(4)) {
 			if (wasYPressed)

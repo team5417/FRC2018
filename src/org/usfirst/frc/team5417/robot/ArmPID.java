@@ -6,17 +6,17 @@ import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.command.PIDSubsystem;
 
-public class NavxPID extends PIDSubsystem {
-	AHRS navx = new AHRS(I2C.Port.kOnboard);
+public class ArmPID extends PIDSubsystem {
+	WPI_TalonSRX armMotor1 = new WPI_TalonSRX(3);
 	double correction = 0;
-	public NavxPID(double p, double i, double d) {
+	public ArmPID(double p, double i, double d) {
 		super(p, i, d);
 		
 	}
 
 	@Override
 	protected double returnPIDInput() {
-		return navx.getYaw();
+		return armMotor1.getSelectedSensorPosition(0);
 	}
 
 	@Override

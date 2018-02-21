@@ -74,6 +74,8 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	DigitalInput limitSwitchBottom = new DigitalInput(0);
 	
 	Servo rampServo = new Servo(2);
+	
+	ArmPID armPID = new ArmPID(.2,0,0);
 
 	Timer timer = new Timer();
 	SpeedControllerGroup m_left = new SpeedControllerGroup(leftMotor1, leftMotor2);
@@ -134,6 +136,8 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	public void robotInit() {
 		navx = new AHRS(SerialPort.Port.kUSB);
 		navx.reset();
+		
+		armPID.enable();
 
 		dsCAT = new ContinuousAngleTracker();
 		tlCAT = new ContinuousAngleTracker();
@@ -155,16 +159,12 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 		wristPistons.set(false);
 		rampServo.set(.5);
 
-		// navxPID.setOutputRange(-0.5, .5);
-		// navxPID.setAbsoluteTolerance(.01);
-		// navxPID.setInputRange(-180, 180);
-		//// navxPID.enable();
+		armPID.setOutputRange(-1, 1);
+		armPID.setAbsoluteTolerance(34);
+		
 		resetNavxPID();
 		m_autoSelected = kCustomAuto;
-		// leftFollower.configurePIDVA(.8, 0, 0, 1/1.7, 0);
-		// rightFollower.configurePIDVA(.8, 0, 0, 1/1.7, 0);
-		// rightFollower.configureEncoder(0, 4096, .127);
-		// leftFollower.configureEncoder(0, 4096, .127);
+		// leftFollower.configurePIDVA(.8, 0, 0, 127);
 
 	}
 
@@ -257,6 +257,7 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 		// update the continuous angle tracker with the current angle so it can track
 		// angles over time
 		dsCAT.nextAngle(navx.getYaw());
+		double armCorrection = armPID.getOutput();
 
 		SmartDashboard.putNumber("left", left);
 		SmartDashboard.putNumber("right", right);
@@ -311,6 +312,7 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 		if (manipulatorStick.getRTValue() > .2 && !limitSwitchTop.get()) {
 			armMotor1.set(manipulatorStick.getRTValue());
 			armMotor2.set(-manipulatorStick.getRTValue());
+			armPID.setSetpoint(armMotor1.getSelectedSensorPosition(0));
 		} else if (manipulatorStick.getLTValue() > .2 && !limitSwitchBottom.get()) {
 			armMotor1.set(-manipulatorStick.getLTValue());
 			armMotor2.set(manipulatorStick.getLTValue());

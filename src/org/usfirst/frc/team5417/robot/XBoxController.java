@@ -19,6 +19,10 @@ public class XBoxController {
 	boolean AbuttonPress = false;
 	boolean wasBPressed = false;
 	boolean BbuttonPress = false;
+	boolean wasRTPressed = false;
+	boolean wasLTPressed = false;
+	boolean RTbuttonPress = false;
+	boolean LTbuttonPress = false;
 	boolean wasStartPressed = false;
 	boolean StartbuttonPress = false;
 	boolean wasDpadleftPressed = false;
@@ -118,6 +122,38 @@ public class XBoxController {
 			RBbuttonPress = false;
 		}
 		return RBbuttonPress;
+	}
+	public boolean isFirstRTPressed() {
+		if (driverStick.getRawAxis(3) > .2) {
+			if (wasRTPressed)
+				RTbuttonPress = false;
+			else
+				RTbuttonPress = true;
+
+			wasRTPressed = true;
+		}
+		
+		else {
+			wasRTPressed = false;
+			RTbuttonPress = false;
+		}
+		return RTbuttonPress;
+	}
+	public boolean isFirstLTPressed() {
+		if (driverStick.getRawAxis(2) > .2) {
+			if (wasLTPressed)
+				LTbuttonPress = false;
+			else
+				LTbuttonPress = true;
+
+			wasLTPressed = true;
+		}
+		
+		else {
+			wasLTPressed = false;
+			LTbuttonPress = false;
+		}
+		return LTbuttonPress;
 	}
 	
 	public boolean isFirstBPressed() {

@@ -22,6 +22,7 @@ import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PIDController;
@@ -47,47 +48,76 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * project.
  */
 public class Robot extends TimedRobot implements PIDSource, PIDOutput {
+	//Initialize Auto modes
 	private static final String kDefaultAuto = "Default";
 	private static final String kCustomAuto = "My Auto";
 	private String m_autoSelected;
 
 	private SendableChooser<String> m_chooser = new SendableChooser<>();
+	
+	//Motor Controllers
 	WPI_TalonSRX leftMotor1 = new WPI_TalonSRX(1);
 	WPI_TalonSRX leftMotor2 = new WPI_TalonSRX(2);
 	WPI_TalonSRX rightMotor1 = new WPI_TalonSRX(5);
 	WPI_TalonSRX rightMotor2 = new WPI_TalonSRX(6);
-	WPI_TalonSRX armMotor1 = new WPI_TalonSRX(3);
-	WPI_TalonSRX armMotor2 = new WPI_TalonSRX(7);
+	VictorSP armMotor1 = new VictorSP(0); //WPI_TalonSRX armMotor1 = new WPI_TalonSRX(3);
+	VictorSP armMotor2 = new VictorSP(1); //WPI_TalonSRX armMotor2 = new WPI_TalonSRX(7);
 //	WPI_TalonSRX climberMotor1 = new WPI_TalonSRX(0);
 	WPI_TalonSRX climberMotor1 = new WPI_TalonSRX(4);
-
-	VictorSP leftIntake = new VictorSP(0);
-	VictorSP rightIntake = new VictorSP(1);
+	
+	//Using VictorSP's for the intake motors
+	VictorSP leftIntake = new VictorSP(3); // change to 0 and 1 at competition
+	VictorSP rightIntake = new VictorSP(4);
+	
+	//Initialize compressor which is used for changing gears, brakes on the climber, and climbing pistons 
 	Compressor compressor = new Compressor();
+	
+	
+	//Initialize Solenoids for pistons
 	Solenoid gearShift = new Solenoid(0);
-
 	Solenoid climbPistons = new Solenoid(3);
 	Solenoid wristPistons = new Solenoid(2);
 	Solenoid bigPistons = new Solenoid(1);
-
-	DigitalInput limitSwitchTop = new DigitalInput(1);
-	DigitalInput limitSwitchBottom = new DigitalInput(0);
 	
+	//Initialize limit switches for Arm
+	DigitalInput limitSwitchTop = new DigitalInput(4);
+	DigitalInput limitSwitchBottom = new DigitalInput(5);
+	DigitalInput encoderLeftA = new DigitalInput(0);
+	DigitalInput encoderLeftB = new DigitalInput(1);
+	DigitalInput encoderRightA = new DigitalInput(2);
+	DigitalInput encoderRightB = new DigitalInput(3);
+	
+	//Initialize servo for the ramp/lift
 	Servo rampServo = new Servo(2);
 	
-	ArmPID armPID = new ArmPID(.2,0,0);
-
+	Encoder leftEncoder = new Encoder(encoderLeftA, encoderLeftB, true);
+	Encoder rightEncoder = new Encoder(encoderRightA, encoderRightB);
+	
+	//Initialize PID for drive system and for the 4bar arm system
+	PIDController navxPID = new PIDController(.01, 0, .1, this, this); /// changed PID values
+	ArmPID leftArmPIDStatic = new ArmPID(leftEncoder, PIDSourceType.kDisplacement, armMotor1, .01, 0, .3);
+	ArmPID rightArmPIDStatic = new ArmPID(rightEncoder,PIDSourceType.kDisplacement, armMotor2, .01, 0, .02);
+	ArmPID leftArmPIDMoving = new ArmPID(leftEncoder, PIDSourceType.kRate, armMotor1, .002, 0.0001, 0);
+	ArmPID rightArmPIDMoving = new ArmPID(rightEncoder, PIDSourceType.kRate, armMotor2, .002, 0.00005, .0001);
+	
+	
+	//Timer for stuff
 	Timer timer = new Timer();
+
+	//Initializing Drive Train
 	SpeedControllerGroup m_left = new SpeedControllerGroup(leftMotor1, leftMotor2);
 	SpeedControllerGroup m_right = new SpeedControllerGroup(rightMotor1, rightMotor2);
 	DifferentialDrive m_drive = new DifferentialDrive(m_left, m_right);
+	
+	//Initializing the controllers
 	XBoxController driverStick = new XBoxController(new Joystick(0));
 	XBoxController manipulatorStick = new XBoxController(new Joystick(1));
+
+	//Initializing Drivetrain Encoders
 	int leftPosition = 0;
 	int rightPosition = 0;
 	boolean buttonstatus = false;
 	// NavxPID navxPID = new NavxPID(.1,20000, 0);
-	PIDController navxPID = new PIDController(.01, 0, .1, this, this); /// changed PID values
 	double left;
 	double right;
 	AHRS navx;
@@ -102,6 +132,7 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	final String driveStraight = "Drive straight";
 	final String rightAuto = "Right auto";
 	double multiplier = 0;
+	boolean pressed = false;
 	// Trajectory.Config config = new
 	// Trajectory.Config(Trajectory.FitMethod.HERMITE_CUBIC,
 	// Trajectory.Config.SAMPLES_FAST, .05, .1, .5, .1);
@@ -127,6 +158,9 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 	boolean run = false;
 	double lastYaw;
 	boolean turnCompleted = false;
+	double leftStaticSetpoint;
+	double rightStaticSetpoint;
+	double movingSetpoint = 0;
 
 	/**
 	 * This function is run when the robot is first started up and should be used
@@ -137,12 +171,13 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 		navx = new AHRS(SerialPort.Port.kUSB);
 		navx.reset();
 		
-		armPID.enable();
+		leftEncoder.setDistancePerPulse(0.17578125);
+		rightEncoder.setDistancePerPulse(0.17578125);
+		
 
 		dsCAT = new ContinuousAngleTracker();
 		tlCAT = new ContinuousAngleTracker();
 		trCAT = new ContinuousAngleTracker();
-
 		leftMotor1.setInverted(true);
 		leftMotor2.setInverted(true);
 		rightMotor1.setInverted(true);
@@ -158,13 +193,21 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 		climbPistons.set(false);
 		wristPistons.set(false);
 		rampServo.set(.5);
-
-		armPID.setOutputRange(-1, 1);
-		armPID.setAbsoluteTolerance(34);
+		leftStaticSetpoint = leftEncoder.getDistance();
+		rightStaticSetpoint = rightEncoder.getDistance();
+		leftArmPIDStatic.setOutputRange(-1, 1);
+		leftArmPIDStatic.setAbsoluteTolerance(3);
+		rightArmPIDStatic.setOutputRange(-1, 1);
+		rightArmPIDStatic.setAbsoluteTolerance(3);
+		leftArmPIDMoving.setOutputRange(-1, 1);
+		leftArmPIDMoving.setAbsoluteTolerance(5);
+		rightArmPIDMoving.setOutputRange(-1, 1);
+		rightArmPIDMoving.setAbsoluteTolerance(5);
 		
 		resetNavxPID();
 		m_autoSelected = kCustomAuto;
 		// leftFollower.configurePIDVA(.8, 0, 0, 127);
+		
 
 	}
 
@@ -246,6 +289,10 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 		compressor.start();
 		timer.start();
 		run = false;
+		leftArmPIDStatic.disable();
+		rightArmPIDStatic.disable();
+		leftArmPIDMoving.disable();
+		rightArmPIDMoving.disable();
 		// Arm.setSetpoint(motor.getSelectedSensorPosition(0));
 	}
 
@@ -257,7 +304,6 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 		// update the continuous angle tracker with the current angle so it can track
 		// angles over time
 		dsCAT.nextAngle(navx.getYaw());
-		double armCorrection = armPID.getOutput();
 
 		SmartDashboard.putNumber("left", left);
 		SmartDashboard.putNumber("right", right);
@@ -306,17 +352,38 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 			// turnLeft();
 		}	
 //		SmartDashboard.putString("DB/String 3", "upperlimit: " + limitSwitchTop.get());
-//		SmartDashboard.putString("DB/String 4", "lowerlim: " + limitSwitchBottom.get());
+//		SmartDashboard.putString("DB/String 4", "lowerlimit: " + limitSwitchBottom.get());
 		
 //		Arm Motors		
-		if (manipulatorStick.getRTValue() > .2 && !limitSwitchTop.get()) {
-			armMotor1.set(manipulatorStick.getRTValue());
-			armMotor2.set(-manipulatorStick.getRTValue());
-			armPID.setSetpoint(armMotor1.getSelectedSensorPosition(0));
-		} else if (manipulatorStick.getLTValue() > .2 && !limitSwitchBottom.get()) {
-			armMotor1.set(-manipulatorStick.getLTValue());
-			armMotor2.set(manipulatorStick.getLTValue());
+		if (manipulatorStick.isFirstLTPressed() || manipulatorStick.isFirstRTPressed()) {
+			leftArmPIDStatic.disable();
+			rightArmPIDStatic.disable();
+			//leftArmPIDMoving.enable();
+			rightArmPIDMoving.enable();
+		}
+		if (manipulatorStick.getRTValue() > .2 && limitSwitchTop.get()) {
+			movingSetpoint = manipulatorStick.getRTValue() * 40;
+			//leftArmPIDMoving.setSetpoint(movingSetpoint);
+			rightArmPIDMoving.setSetpoint(movingSetpoint);
+			//armMotor1.set(.4);
+			pressed = true;
+		} else if (manipulatorStick.getLTValue() > .2 && limitSwitchBottom.get()) {
+			movingSetpoint = manipulatorStick.getLTValue() * -40;
+			//leftArmPIDMoving.setSetpoint(movingSetpoint);
+			rightArmPIDMoving.setSetpoint(movingSetpoint);
+			//armMotor1.set(-.4);
+			pressed = true;
 		} else {
+			if (pressed) {
+				movingSetpoint = 0;
+				leftArmPIDMoving.setSetpoint(movingSetpoint);
+				rightArmPIDMoving.setSetpoint(movingSetpoint);
+				leftArmPIDStatic.disable();
+				rightArmPIDStatic.disable();
+				leftArmPIDMoving.disable();
+				leftArmPIDMoving.disable();	
+				pressed = false;
+			}
 			armMotor1.set(0);
 			armMotor2.set(0);
 		}
@@ -324,17 +391,21 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 //		Climber goes up
 		if (manipulatorStick.isStartHeldDown()) {
 			climberMotor1.set(1);
+			armMotor1.set(.4);
 		}
 		else {
 			climberMotor1.set(0);
+			armMotor1.set(0);
 		}
 		
 //		Climber goes down
 		if (manipulatorStick.isBackHeldDown()) {
 			climberMotor1.set(-1);
+			armMotor1.set(-.4);
 		}
 		else {
 			climberMotor1.set(0);
+			armMotor1.set(0);
 		}
 		
 		SmartDashboard.putString("DB/String 9", "Right motor: " + armMotor2.get());
@@ -423,7 +494,10 @@ public class Robot extends TimedRobot implements PIDSource, PIDOutput {
 			right = -driverStick.getRYValue();
 			m_drive.tankDrive(left, right);
 		}
-
+		SmartDashboard.putNumber("left arm encoder", leftEncoder.pidGet());
+		SmartDashboard.putNumber("right arm setpoint", movingSetpoint);
+		SmartDashboard.putBoolean("top switch", limitSwitchTop.get());
+		SmartDashboard.putBoolean("bottom switch", limitSwitchBottom.get());
 	}
 
 	/**
